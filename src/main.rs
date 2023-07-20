@@ -1,3 +1,4 @@
+#[allow(unused)]
 use buffer::Buffer;
 use clap::Parser;
 
@@ -11,4 +12,5 @@ fn main() {
 
     //The main buffer
     let buffer = Buffer::new(args.file);
+    let _ = buffer.buffer.len();
 }

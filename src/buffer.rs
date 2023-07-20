@@ -8,8 +8,8 @@ pub struct Buffer {
 
 impl Buffer {
     pub fn new(path: Option<PathBuf>) -> Self {
-        Buffer {
-            buffer: if let Some(path) = path {
+        Self {
+            buffer: path.map_or(String::new(), |path| {
                 if !path.exists() {
                     println!("{}: No such file or directory", path.display());
                 }
@@ -19,9 +19,7 @@ impl Buffer {
                 let file = std::fs::read(path).unwrap();
                 println!("{}", file.len());
                 String::from_utf8(file).unwrap()
-            } else {
-                String::new()
-            },
+            }),
         }
     }
 }
