@@ -4,6 +4,8 @@ use std::path::PathBuf;
 pub struct Buffer {
     ///The actual text of the file
     pub buffer: String,
+    pub cursor: u64,
+    pub modified: bool,
 }
 
 impl Buffer {
@@ -20,6 +22,8 @@ impl Buffer {
                 println!("{}", file.len());
                 String::from_utf8(file).unwrap()
             }),
+            cursor: 0,
+            modified: false,
         }
     }
 }

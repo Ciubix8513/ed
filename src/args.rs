@@ -14,5 +14,7 @@ pub struct Args {
     pub lose_exit_status: bool,
     #[arg(short, long)]
     pub prompt: Option<String>,
+    #[arg(short, long)]
+    pub verbose: bool,
     pub file: Option<PathBuf>,
 }
