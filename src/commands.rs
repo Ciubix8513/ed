@@ -4,9 +4,10 @@ pub enum Operation {
     SetPrompt(String),
     Insert,
     Append,
+    Write(String),
 }
 pub fn parse_command(command: &str) -> Operation {
-    match command.chars().nth(0).unwrap_or_default() {
+    match command.chars().nth(0).unwrap_or('q') {
         'q' | 'Q' => Operation::Quit,
         'P' => {
             if command.len() == 2 {
@@ -17,6 +18,7 @@ pub fn parse_command(command: &str) -> Operation {
         }
         'i' => Operation::Insert,
         'a' => Operation::Append,
+        'w' => Operation::Write(command[1..].into()),
         _ => Operation::Error("Unknown command"),
     }
 }

@@ -27,6 +27,9 @@ fn main() -> ExitCode {
     let mut mode = Mode::Command;
     let mut verbose = args.verbose;
     let mut editing_buffer = String::new();
+    let mut tried_quit = false;
+
+    let mut last_error = "";
 
     loop {
         command.clear();
@@ -36,11 +39,16 @@ fn main() -> ExitCode {
                 std::io::stdout().flush().unwrap();
                 stdin.read_line(&mut command).unwrap();
                 match parse_command(&command) {
-                    commands::Operation::Quit => return ExitCode::SUCCESS,
-                    commands::Operation::Error(e) => {
-                        if verbose {
-                            println!("{e}");
+                    commands::Operation::Quit => {
+                        if !buffer.modified || tried_quit {
+                            return ExitCode::SUCCESS;
                         }
+                        tried_quit = true;
+                        last_error = "Warning: buffer modified";
+                        println!("?");
+                    }
+                    commands::Operation::Error(e) => {
+                        last_error = e;
                         println!("?")
                     }
                     commands::Operation::SetPrompt(p) => prompt = p,
@@ -51,25 +59,40 @@ fn main() -> ExitCode {
                         mode = Mode::Edit
                     }
                     commands::Operation::Append => mode = Mode::Edit,
+                    commands::Operation::Write(file) => {
+                        if file.is_empty() {
+                            last_error = "No current filename";
+                        } else {
+                            match std::fs::File::create(&file[0..file.len() - 1]) {
+                                Ok(mut f) => match f.write(&buffer.buffer.as_bytes()) {
+                                    Ok(i) => {
+                                        println!("{i}");
+                                    }
+                                    Err(_) => {}
+                                },
+                                Err(_) => {}
+                            };
+                        }
+                        buffer.modified = false;
+                    }
                 }
             }
             Mode::Edit => {
                 stdin.read_line(&mut command).unwrap();
-                if editing_buffer.trim().eq(".") {
+                if command.trim().eq(".") {
                     buffer.buffer.push_str(&editing_buffer);
-                    mode = Mode::Command;
                     editing_buffer.clear();
+
+                    mode = Mode::Command;
+                    buffer.modified = true;
                     continue;
                 }
                 editing_buffer.push_str(&command);
             }
         }
-        // if command.contains('q') {
-        //     return ExitCode::SUCCESS;
-        // }
-        // if command.is_empty() {
-        //     println!("?");
-        //     continue;
-        // }
+        if verbose && !last_error.is_empty() {
+            println!("{last_error}");
+            last_error = "";
+        }
     }
 }
