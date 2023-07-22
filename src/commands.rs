@@ -8,7 +8,7 @@ pub enum Operation {
     ToggleVerbose,
 }
 pub fn parse_command(command: &str) -> Operation {
-    match command.chars().nth(0).unwrap_or('q') {
+    match command.chars().next().unwrap_or('q') {
         'q' | 'Q' => Operation::Quit,
         'P' => {
             if command.len() == 2 {

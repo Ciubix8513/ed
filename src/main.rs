@@ -29,7 +29,7 @@ fn main() -> ExitCode {
     let mut editing_buffer = String::new();
     let mut tried_quit = false;
 
-    let mut last_error = "";
+    let mut last_error = String::new();
 
     loop {
         command.clear();
@@ -44,33 +44,39 @@ fn main() -> ExitCode {
                             return ExitCode::SUCCESS;
                         }
                         tried_quit = true;
-                        last_error = "Warning: buffer modified";
+                        last_error = "Warning: buffer modified".into();
                         println!("?");
                     }
                     commands::Operation::Error(e) => {
-                        last_error = e;
-                        println!("?")
+                        last_error = e.into();
+                        println!("?");
                     }
                     commands::Operation::SetPrompt(p) => prompt = p,
                     commands::Operation::Insert => {
                         if buffer.cursor > 0 {
                             buffer.cursor -= 1;
                         }
-                        mode = Mode::Edit
+                        mode = Mode::Edit;
                     }
                     commands::Operation::Append => mode = Mode::Edit,
                     commands::Operation::Write(file) => {
                         if file.is_empty() {
-                            last_error = "No current filename";
+                            last_error = "No current filename".into();
                         } else {
                             match std::fs::File::create(&file[0..file.len() - 1]) {
-                                Ok(mut f) => match f.write(&buffer.buffer.as_bytes()) {
+                                Ok(mut f) => match f.write(buffer.buffer.as_bytes()) {
                                     Ok(i) => {
                                         println!("{i}");
                                     }
-                                    Err(_) => {}
+                                    Err(e) => {
+                                        println!("?");
+                                        last_error = e.to_string();
+                                    }
                                 },
-                                Err(_) => {}
+                                Err(e) => {
+                                    println!("?");
+                                    last_error = e.to_string();
+                                }
                             };
                         }
                         buffer.modified = false;
@@ -93,7 +99,7 @@ fn main() -> ExitCode {
         }
         if verbose && !last_error.is_empty() {
             println!("{last_error}");
-            last_error = "";
+            last_error.clear();
         }
     }
 }
