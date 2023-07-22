@@ -75,6 +75,7 @@ fn main() -> ExitCode {
                         }
                         buffer.modified = false;
                     }
+                    commands::Operation::ToggleVerbose => verbose = !verbose,
                 }
             }
             Mode::Edit => {

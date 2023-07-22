@@ -5,6 +5,7 @@ pub enum Operation {
     Insert,
     Append,
     Write(String),
+    ToggleVerbose,
 }
 pub fn parse_command(command: &str) -> Operation {
     match command.chars().nth(0).unwrap_or('q') {
@@ -19,6 +20,7 @@ pub fn parse_command(command: &str) -> Operation {
         'i' => Operation::Insert,
         'a' => Operation::Append,
         'w' => Operation::Write(command[1..].into()),
+        'H' => Operation::ToggleVerbose,
         _ => Operation::Error("Unknown command"),
     }
 }
