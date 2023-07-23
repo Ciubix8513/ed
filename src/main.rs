@@ -38,7 +38,7 @@ fn main() -> ExitCode {
                 print!("{prompt}");
                 std::io::stdout().flush().unwrap();
                 stdin.read_line(&mut command).unwrap();
-                match parse_command(&command) {
+                match parse_command(&command.trim_end_matches('\n')) {
                     commands::Operation::Quit => {
                         if !buffer.modified || tried_quit {
                             return ExitCode::SUCCESS;
@@ -51,7 +51,13 @@ fn main() -> ExitCode {
                         last_error = e.into();
                         println!("?");
                     }
-                    commands::Operation::SetPrompt(p) => prompt = p,
+                    commands::Operation::SetPrompt(p) => {
+                        if p.is_empty() && prompt.is_empty() {
+                            prompt = "*".into();
+                        } else {
+                            prompt = p;
+                        }
+                    }
                     commands::Operation::Insert => {
                         if buffer.cursor > 0 {
                             buffer.cursor -= 1;
@@ -63,7 +69,7 @@ fn main() -> ExitCode {
                         if file.is_empty() {
                             last_error = "No current filename".into();
                         } else {
-                            match std::fs::File::create(&file[0..file.len() - 1]) {
+                            match std::fs::File::create(&file[0..]) {
                                 Ok(mut f) => match f.write(buffer.buffer.as_bytes()) {
                                     Ok(i) => {
                                         println!("{i}");

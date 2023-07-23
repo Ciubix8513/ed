@@ -8,11 +8,11 @@ pub enum Operation {
     ToggleVerbose,
 }
 pub fn parse_command(command: &str) -> Operation {
-    match command.chars().next().unwrap_or('q') {
+    match command.chars().next().unwrap_or(' ') {
         'q' | 'Q' => Operation::Quit,
         'P' => {
-            if command.len() == 2 {
-                Operation::SetPrompt("*".into())
+            if command.len() == 1 {
+                Operation::SetPrompt(String::new())
             } else {
                 Operation::SetPrompt(command[1..].into())
             }
