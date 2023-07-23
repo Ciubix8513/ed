@@ -1,7 +1,7 @@
 pub enum Operation {
     Quit,
     Error(&'static str),
-    SetPrompt(String),
+    TogglePrompt,
     Insert,
     Append,
     Write(String),
@@ -10,13 +10,7 @@ pub enum Operation {
 pub fn parse_command(command: &str) -> Operation {
     match command.chars().next().unwrap_or(' ') {
         'q' | 'Q' => Operation::Quit,
-        'P' => {
-            if command.len() == 1 {
-                Operation::SetPrompt(String::new())
-            } else {
-                Operation::SetPrompt(command[1..].into())
-            }
-        }
+        'P' => Operation::TogglePrompt,
         'i' => Operation::Insert,
         'a' => Operation::Append,
         'w' => Operation::Write(command[1..].into()),

@@ -21,8 +21,9 @@ fn main() -> ExitCode {
     let mut buffer = Buffer::new(args.file);
 
     let stdin = std::io::stdin();
+    let mut display_prompt = args.prompt.is_some();
 
-    let mut prompt = args.prompt.unwrap_or_default();
+    let prompt = args.prompt.unwrap_or_else(|| "*".into());
     let mut command = String::new();
     let mut mode = Mode::Command;
     let mut verbose = args.verbose;
@@ -35,10 +36,12 @@ fn main() -> ExitCode {
         command.clear();
         match mode {
             Mode::Command => {
-                print!("{prompt}");
+                if display_prompt {
+                    print!("{prompt}");
+                }
                 std::io::stdout().flush().unwrap();
                 stdin.read_line(&mut command).unwrap();
-                match parse_command(&command.trim_end_matches('\n')) {
+                match parse_command(command.trim_end_matches('\n')) {
                     commands::Operation::Quit => {
                         if !buffer.modified || tried_quit {
                             return ExitCode::SUCCESS;
@@ -51,12 +54,8 @@ fn main() -> ExitCode {
                         last_error = e.into();
                         println!("?");
                     }
-                    commands::Operation::SetPrompt(p) => {
-                        if p.is_empty() && prompt.is_empty() {
-                            prompt = "*".into();
-                        } else {
-                            prompt = p;
-                        }
+                    commands::Operation::TogglePrompt => {
+                        display_prompt = !display_prompt;
                     }
                     commands::Operation::Insert => {
                         if buffer.cursor > 0 {
