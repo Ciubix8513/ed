@@ -2,16 +2,19 @@ use std::path::PathBuf;
 
 ///Main buffer that is being edited
 pub struct Buffer {
-    ///The actual text of the file
-    pub buffer: String,
+    ///The actual text of the file, stored as an array of string for easier modification
+    pub lines: Vec<String>,
     pub cursor: u64,
     pub modified: bool,
+}
+pub fn string_to_lines(input: &str) -> Vec<String> {
+    input.split('\n').map(|i| Into::<String>::into(i)).collect()
 }
 
 impl Buffer {
     pub fn new(path: Option<PathBuf>) -> Self {
         Self {
-            buffer: path.map_or(String::new(), |path| {
+            lines: path.map_or(Vec::new(), |path| {
                 if !path.exists() {
                     println!("{}: No such file or directory", path.display());
                 }
@@ -20,7 +23,7 @@ impl Buffer {
                 }
                 let file = std::fs::read(path).unwrap();
                 println!("{}", file.len());
-                String::from_utf8(file).unwrap()
+                string_to_lines(&String::from_utf8(file).unwrap())
             }),
             cursor: 0,
             modified: false,
