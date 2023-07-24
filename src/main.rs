@@ -1,5 +1,6 @@
 use std::{io::Write, process::ExitCode};
 
+use buffer::string_to_lines;
 #[allow(unused)]
 use buffer::Buffer;
 use clap::Parser;
@@ -41,6 +42,9 @@ fn main() -> ExitCode {
                 }
                 std::io::stdout().flush().unwrap();
                 stdin.read_line(&mut command).unwrap();
+                if command.chars().last().is_none() {
+                    command.push('q');
+                }
                 match parse_command(command.trim_end_matches('\n')) {
                     commands::Operation::Quit => {
                         if !buffer.modified || tried_quit {
@@ -49,6 +53,7 @@ fn main() -> ExitCode {
                         tried_quit = true;
                         last_error = "Warning: buffer modified".into();
                         println!("?");
+                        continue;
                     }
                     commands::Operation::Error(e) => {
                         last_error = e.into();
@@ -69,7 +74,7 @@ fn main() -> ExitCode {
                             last_error = "No current filename".into();
                         } else {
                             match std::fs::File::create(&file[0..]) {
-                                Ok(mut f) => match f.write(buffer.buffer.as_bytes()) {
+                                Ok(mut f) => match f.write(buffer.to_string().as_bytes()) {
                                     Ok(i) => {
                                         println!("{i}");
                                     }
@@ -87,14 +92,21 @@ fn main() -> ExitCode {
                         buffer.modified = false;
                     }
                     commands::Operation::ToggleVerbose => verbose = !verbose,
+                    commands::Operation::Print => println!("{:?}", buffer.lines),
                 }
+                tried_quit = false;
             }
             Mode::Edit => {
                 stdin.read_line(&mut command).unwrap();
                 if command.trim().eq(".") {
-                    buffer.buffer.push_str(&editing_buffer);
+                    // buffer.lines.push(editing_buffer.clone());
+                    println!("Adding {editing_buffer} at {}", buffer.cursor);
+                    buffer.lines.splice(
+                        buffer.cursor..buffer.cursor,
+                        string_to_lines(&editing_buffer),
+                    );
+                    buffer.cursor = buffer.lines.len();
                     editing_buffer.clear();
-
                     mode = Mode::Command;
                     buffer.modified = true;
                     continue;

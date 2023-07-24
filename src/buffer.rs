@@ -4,11 +4,15 @@ use std::path::PathBuf;
 pub struct Buffer {
     ///The actual text of the file, stored as an array of string for easier modification
     pub lines: Vec<String>,
-    pub cursor: u64,
+    pub cursor: usize,
     pub modified: bool,
 }
 pub fn string_to_lines(input: &str) -> Vec<String> {
-    input.split('\n').map(|i| Into::<String>::into(i)).collect()
+    input
+        .trim_end_matches('\n')
+        .split('\n')
+        .map(|i| Into::<String>::into(i))
+        .collect()
 }
 
 impl Buffer {
@@ -28,5 +32,8 @@ impl Buffer {
             cursor: 0,
             modified: false,
         }
+    }
+    pub fn to_string(&self) -> String {
+        self.lines.join("\n")
     }
 }
