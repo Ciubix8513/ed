@@ -72,6 +72,7 @@ fn main() -> ExitCode {
                     commands::Operation::Write(file) => {
                         if file.is_empty() {
                             last_error = "No current filename".into();
+                            println!("?");
                         } else {
                             match std::fs::File::create(&file[0..]) {
                                 Ok(mut f) => match f.write(buffer.to_string().as_bytes()) {

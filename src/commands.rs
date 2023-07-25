@@ -14,7 +14,11 @@ pub fn parse_command(command: &str) -> Operation {
         'P' => Operation::TogglePrompt,
         'i' => Operation::Insert,
         'a' => Operation::Append,
-        'w' => Operation::Write(command[1..].into()),
+        'w' => Operation::Write(if command.len() >= 3 {
+            command[2..].trim_start().into()
+        } else {
+            String::new()
+        }),
         'H' => Operation::ToggleVerbose,
         'p' => Operation::Print,
         _ => Operation::Error("Unknown command"),
