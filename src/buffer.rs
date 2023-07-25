@@ -1,3 +1,4 @@
+#![allow(clippy::inherent_to_string)]
 use std::path::PathBuf;
 
 ///Main buffer that is being edited
@@ -8,11 +9,12 @@ pub struct Buffer {
     pub modified: bool,
 }
 pub fn string_to_lines(input: &str) -> Vec<String> {
-    input
-        .trim_end_matches('\n')
+    let mut o = input
         .split('\n')
-        .map(|i| Into::<String>::into(i))
-        .collect()
+        .map(Into::<String>::into)
+        .collect::<Vec<_>>();
+    o.pop();
+    o
 }
 
 impl Buffer {
