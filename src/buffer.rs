@@ -2,11 +2,13 @@
 use std::path::PathBuf;
 
 ///Main buffer that is being edited
+#[derive(Default)]
 pub struct Buffer {
     ///The actual text of the file, stored as an array of string for easier modification
     pub lines: Vec<String>,
     pub cursor: usize,
     pub modified: bool,
+    pub filename: String,
 }
 pub fn string_to_lines(input: &str) -> Vec<String> {
     let mut o = input
@@ -31,8 +33,7 @@ impl Buffer {
                 println!("{}", file.len());
                 string_to_lines(&String::from_utf8(file).unwrap())
             }),
-            cursor: 0,
-            modified: false,
+            ..Default::default()
         }
     }
     pub fn to_string(&self) -> String {

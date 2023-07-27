@@ -1,4 +1,8 @@
-use std::{io::Write, process::ExitCode};
+#![allow(clippy::too_many_lines)]
+use std::{
+    io::{ErrorKind, Write},
+    process::ExitCode,
+};
 
 use buffer::string_to_lines;
 #[allow(unused)]
@@ -70,11 +74,14 @@ fn main() -> ExitCode {
                     }
                     commands::Operation::Append => mode = Mode::Edit,
                     commands::Operation::Write(file) => {
-                        if file.is_empty() {
+                        if file.is_empty() && buffer.filename.is_empty() {
                             last_error = "No current filename".into();
                             println!("?");
                         } else {
-                            match std::fs::File::create(&file[0..]) {
+                            if !file.is_empty() {
+                                buffer.filename = file;
+                            }
+                            match std::fs::File::create(&buffer.filename) {
                                 Ok(mut f) => match f.write(buffer.to_string().as_bytes()) {
                                     Ok(i) => {
                                         println!("{i}");
@@ -85,8 +92,24 @@ fn main() -> ExitCode {
                                     }
                                 },
                                 Err(e) => {
+                                    let kind = e.kind();
+                                    if kind == ErrorKind::PermissionDenied {
+                                        last_error =
+                                            format!("{}: permission denied", buffer.filename);
+                                    } else if kind == ErrorKind::NotFound {
+                                        last_error = format!(
+                                            "{}: No such file or directory",
+                                            buffer.filename
+                                        );
+                                    } else if kind == ErrorKind::InvalidInput {
+                                        //IDs what the original name is, but eh, it's fine, idk how
+                                        //you would even get this error
+                                        last_error =
+                                            format!("{}: invalid filename", buffer.filename);
+                                    } else {
+                                        last_error = format!("{}: {} \n btw how did you do this? srsly, i'm curious, feel free to msg me",buffer.filename,e);
+                                    }
                                     println!("?");
-                                    last_error = e.to_string();
                                 }
                             };
                         }
