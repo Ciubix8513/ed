@@ -9,7 +9,7 @@ use buffer::string_to_lines;
 use buffer::Buffer;
 use clap::Parser;
 
-use crate::{args::Args, commands::parse_command};
+use crate::{args::Args, buffer::Operation};
 
 mod args;
 mod buffer;
@@ -49,8 +49,8 @@ fn main() -> ExitCode {
                 if command.chars().last().is_none() {
                     command.push('q');
                 }
-                match parse_command(command.trim_end_matches('\n')) {
-                    commands::Operation::Quit => {
+                match buffer.parse_command(command.trim_end_matches('\n')) {
+                    Operation::Quit => {
                         if !buffer.modified || tried_quit {
                             return ExitCode::SUCCESS;
                         }
@@ -59,21 +59,21 @@ fn main() -> ExitCode {
                         println!("?");
                         continue;
                     }
-                    commands::Operation::Error(e) => {
+                    Operation::Error(e) => {
                         last_error = e.into();
                         println!("?");
                     }
-                    commands::Operation::TogglePrompt => {
+                    Operation::TogglePrompt => {
                         display_prompt = !display_prompt;
                     }
-                    commands::Operation::Insert => {
+                    Operation::Insert => {
                         if buffer.cursor > 0 {
                             buffer.cursor -= 1;
                         }
                         mode = Mode::Edit;
                     }
-                    commands::Operation::Append => mode = Mode::Edit,
-                    commands::Operation::Write(file) => {
+                    Operation::Append => mode = Mode::Edit,
+                    Operation::Write(file) => {
                         if file.is_empty() && buffer.filename.is_empty() {
                             last_error = "No current filename".into();
                             println!("?");
@@ -115,8 +115,8 @@ fn main() -> ExitCode {
                         }
                         buffer.modified = false;
                     }
-                    commands::Operation::ToggleVerbose => verbose = !verbose,
-                    commands::Operation::Print => println!("{:?}", buffer.lines),
+                    Operation::ToggleVerbose => verbose = !verbose,
+                    Operation::Print(_) => println!("{:?}", buffer.lines),
                 }
                 tried_quit = false;
             }

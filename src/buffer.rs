@@ -1,6 +1,22 @@
 #![allow(clippy::inherent_to_string)]
 use std::path::PathBuf;
 
+pub enum Operation {
+    Quit,
+    Error(&'static str),
+    TogglePrompt,
+    Insert,
+    Append,
+    Write(String),
+    ToggleVerbose,
+    Print(Option<CommandIndex>),
+}
+
+pub struct CommandIndex {
+    pub begining: usize,
+    pub end: Option<usize>,
+}
+
 ///Main buffer that is being edited
 #[derive(Default)]
 pub struct Buffer {
@@ -38,5 +54,27 @@ impl Buffer {
     }
     pub fn to_string(&self) -> String {
         self.lines.join("\n")
+    }
+
+    fn parse_index<'a>(&self, ind: &'a str) -> (Option<CommandIndex>, &'a str) {
+        (None, ind)
+    }
+
+    pub fn parse_command(&self, command: &str) -> Operation {
+        let (index, command) = self.parse_index(command);
+        match command.chars().next().unwrap_or(' ') {
+            'q' | 'Q' => Operation::Quit,
+            'P' => Operation::TogglePrompt,
+            'i' => Operation::Insert,
+            'a' => Operation::Append,
+            'w' => Operation::Write(if command.len() >= 3 {
+                command[2..].trim_start().into()
+            } else {
+                String::new()
+            }),
+            'H' => Operation::ToggleVerbose,
+            'p' => Operation::Print(index),
+            _ => Operation::Error("Unknown command"),
+        }
     }
 }
