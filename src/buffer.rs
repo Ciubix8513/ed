@@ -25,6 +25,7 @@ pub struct Buffer {
     pub cursor: usize,
     pub modified: bool,
     pub filename: String,
+    pub marker: usize,
 }
 pub fn string_to_lines(input: &str) -> Vec<String> {
     let mut o = input
@@ -57,6 +58,59 @@ impl Buffer {
     }
 
     fn parse_index<'a>(&self, ind: &'a str) -> (Option<CommandIndex>, &'a str) {
+        //Valid index chars:
+        //. = current line
+        //$ = last line
+        //0 - 9 = digits
+        //+ - = modification of other symbols
+        //, = address range separation
+        //; = address range additional char N; = N,$Index
+        //x = Marker
+        //Manual parsing?
+        let mut parsing_index: usize = 0;
+        let mut offset = 0;
+        let mut first_index = None;
+        let mut second_index = None;
+        let mut number_buffer = String::new();
+
+        for c in ind.chars() {
+            match c {
+                '.' => {
+                    if first_index.is_none() {
+                        first_index = Some(self.cursor);
+                    } else {
+                        second_index = Some(self.cursor);
+                    }
+                }
+                '$' => {
+                    if first_index.is_none() {
+                        first_index = Some(self.lines.len() - 1);
+                    } else {
+                        second_index = Some(self.lines.len() - 1);
+                    }
+                }
+                '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+                    number_buffer.push(c);
+                }
+                ',' => {}
+                ';' => {}
+                'x' => {
+                    if first_index.is_none() {
+                        first_index = Some(self.marker);
+                    } else {
+                        second_index = Some(self.marker);
+                    }
+                }
+                '+' => {
+                    offset += 1;
+                }
+                '-' => {
+                    offset -= 1;
+                }
+                _ => {}
+            }
+            parsing_index += 1;
+        }
         (None, ind)
     }
 

@@ -13,7 +13,6 @@ use crate::{args::Args, buffer::Operation};
 
 mod args;
 mod buffer;
-mod commands;
 enum Mode {
     Command,
     Edit,
