@@ -16,6 +16,14 @@ pub struct CommandIndex {
     pub begining: usize,
     pub end: Option<usize>,
 }
+impl From<(usize, Option<usize>)> for CommandIndex {
+    fn from(value: (usize, Option<usize>)) -> Self {
+        Self {
+            begining: value.0,
+            end: value.1,
+        }
+    }
+}
 
 ///Main buffer that is being edited
 #[derive(Default)]
@@ -57,7 +65,11 @@ impl Buffer {
         self.lines.join("\n")
     }
 
-    fn parse_index<'a>(&self, ind: &'a str) -> (Option<CommandIndex>, &'a str) {
+    fn parse_index<'a>(
+        &self,
+        ind: &'a str,
+        //This is some serious type fuckery
+    ) -> (Result<Option<(usize, Option<usize>)>, ()>, &'a str) {
         //Valid index chars:
         //. = current line
         //$ = last line
@@ -107,7 +119,28 @@ impl Buffer {
                 '-' => {
                     offset -= 1;
                 }
-                _ => {}
+                //Reached the end of the index
+                _ => {
+                    if number_buffer.is_empty() {
+                        return (
+                            first_index.map(|i| (i, second_index)),
+                            &ind[parsing_index..],
+                        );
+                    } else {
+                        if second_index.is_some() {
+                            return (None, &ind[parsing_index..]);
+                        }
+                        let index = number_buffer.parse::<usize>().ok().map(|i| i + offset);
+                        // No need to clear this, since there will be no more parsing
+                        // number_buffer.clear();
+                        // offset = 0;
+                        return if first_index.is_some() {
+                            (Some((first_index.unwrap(), index)), &ind[parsing_index..])
+                        } else {
+                            (index.map(|i| (i, None)), &ind[parsing_index..])
+                        };
+                    }
+                }
             }
             parsing_index += 1;
         }
@@ -127,7 +160,7 @@ impl Buffer {
                 String::new()
             }),
             'H' => Operation::ToggleVerbose,
-            'p' => Operation::Print(index),
+            'p' => Operation::Print(index.map(Into::into)),
             _ => Operation::Error("Unknown command"),
         }
     }
