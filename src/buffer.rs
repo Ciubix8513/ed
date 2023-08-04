@@ -84,6 +84,8 @@ impl Buffer {
         let mut first_index = None;
         let mut second_index = None;
         let mut number_buffer = String::new();
+        let mut first_index_aquiered = false;
+        let mut complete_index = None;
 
         for c in ind.chars() {
             match c {
@@ -104,11 +106,18 @@ impl Buffer {
                 '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
                     number_buffer.push(c);
                 }
-                ',' => {}
-                ';' => {}
+                ',' | ';' => {
+                    if number_buffer.is_empty() {
+                        complete_index = if c == ',' {
+                            Some((self.cursor, Some(self.lines.len())))
+                        } else {
+                            Some((self.cursor, Some(self.lines.len())))
+                        };
+                    }
+                }
                 'x' => {
-                    if first_index.is_none() {
-                        first_index = Some(self.marker);
+                    if number_buffer.is_empty() {
+                        second_index = Some(self.marker);
                     } else {
                         second_index = Some(self.marker);
                     }
@@ -123,28 +132,31 @@ impl Buffer {
                 _ => {
                     if number_buffer.is_empty() {
                         return (
-                            first_index.map(|i| (i, second_index)),
+                            Ok(first_index.map(|i| (i, second_index))),
                             &ind[parsing_index..],
                         );
                     } else {
                         if second_index.is_some() {
-                            return (None, &ind[parsing_index..]);
+                            return (Err(()), &ind[parsing_index..]);
                         }
                         let index = number_buffer.parse::<usize>().ok().map(|i| i + offset);
                         // No need to clear this, since there will be no more parsing
                         // number_buffer.clear();
                         // offset = 0;
                         return if first_index.is_some() {
-                            (Some((first_index.unwrap(), index)), &ind[parsing_index..])
+                            (
+                                Ok(Some((first_index.unwrap(), index))),
+                                &ind[parsing_index..],
+                            )
                         } else {
-                            (index.map(|i| (i, None)), &ind[parsing_index..])
+                            (Ok(index.map(|i| (i, None))), &ind[parsing_index..])
                         };
                     }
                 }
             }
             parsing_index += 1;
         }
-        (None, ind)
+        (Ok(None), ind)
     }
 
     pub fn parse_command(&self, command: &str) -> Operation {
@@ -160,8 +172,19 @@ impl Buffer {
                 String::new()
             }),
             'H' => Operation::ToggleVerbose,
-            'p' => Operation::Print(index.map(Into::into)),
+            //God, the type fuckery is real
+            'p' => Operation::Print(index.ok().map(|i| i.map(Into::into)).flatten()),
             _ => Operation::Error("Unknown command"),
         }
     }
+}
+
+#[test]
+fn index_test() {
+    let buffer = Buffer::default();
+    let command = "1,10p";
+    let (index, command) = buffer.parse_index(command);
+
+    assert_eq!(index, Ok(Some((1, Some(10)))));
+    assert_eq!(command, "p");
 }
