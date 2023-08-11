@@ -84,7 +84,6 @@ impl Buffer {
         let mut first_index = None;
         let mut second_index = None;
         let mut number_buffer = String::new();
-        let mut first_index_aquiered = false;
         let mut complete_index = None;
 
         for c in ind.chars() {
@@ -108,12 +107,44 @@ impl Buffer {
                 }
                 ',' | ';' => {
                     if number_buffer.is_empty() {
+                        if offset != 0 {
+                            println!("Error at 111");
+                            return (
+                                Err(()),
+                                &ind[parsing_index
+                                    + if ind.len() >= parsing_index { 1 } else { 0 }..],
+                            );
+                        }
                         complete_index = if c == ',' {
                             Some((self.cursor, Some(self.lines.len())))
                         } else {
-                            Some((self.cursor, Some(self.lines.len())))
+                            Some((0, Some(self.lines.len())))
                         };
+                        parsing_index += 1;
+                        continue;
                     }
+                    // println!("Non empty num buffer: {:?}", number_buffer.as_bytes()); println!("Non empty num buffer len {:?}", number_buffer.len());
+
+                    // we can safely unwrap this one because we push only numbers
+                    let index: i32 = number_buffer.parse().unwrap();
+
+                    if -offset > index || index + offset > self.lines.len() as i32 {
+                        println!("Offset {offset}, index {index}, len {}", self.lines.len());
+                        println!("Error at 132");
+                        return (
+                            Err(()),
+                            &ind[parsing_index + if ind.len() >= parsing_index { 1 } else { 0 }..],
+                        );
+                    }
+                    if c == ';' {
+                        return (
+                            Ok(Some(((index + offset) as usize, Some(self.lines.len())))),
+                            &ind[parsing_index + if ind.len() >= parsing_index { 1 } else { 0 }..],
+                        );
+                    }
+                    first_index = Some((index + offset) as usize);
+                    number_buffer.clear();
+                    offset = 0;
                 }
                 'x' => {
                     if number_buffer.is_empty() {
@@ -130,6 +161,13 @@ impl Buffer {
                 }
                 //Reached the end of the index
                 _ => {
+                    if complete_index.is_some() {
+                        if !number_buffer.is_empty() || offset != 0 {
+                            println!("Error at 165");
+                            return (Err(()), &ind[parsing_index..]);
+                        }
+                        return (Ok(complete_index), &ind[parsing_index..]);
+                    }
                     if number_buffer.is_empty() {
                         return (
                             Ok(first_index.map(|i| (i, second_index))),
@@ -137,9 +175,13 @@ impl Buffer {
                         );
                     } else {
                         if second_index.is_some() {
+                            println!("Error at 177");
                             return (Err(()), &ind[parsing_index..]);
                         }
-                        let index = number_buffer.parse::<usize>().ok().map(|i| i + offset);
+                        let index = number_buffer
+                            .parse::<usize>()
+                            .ok()
+                            .map(|i| i + offset as usize);
                         // No need to clear this, since there will be no more parsing
                         // number_buffer.clear();
                         // offset = 0;
@@ -181,10 +223,50 @@ impl Buffer {
 
 #[test]
 fn index_test() {
-    let buffer = Buffer::default();
+    let mut buffer = Buffer::default();
+    buffer.cursor = 1;
+    buffer.lines = (0..20).map(|i| i.to_string()).collect();
+
     let command = "1,10p";
     let (index, command) = buffer.parse_index(command);
 
     assert_eq!(index, Ok(Some((1, Some(10)))));
+    assert_eq!(command, "p");
+}
+
+#[test]
+fn single_index_test() {
+    let mut buffer = Buffer::default();
+    buffer.cursor = 1;
+    buffer.lines = (0..9).map(|i| i.to_string()).collect();
+
+    let command = ",p";
+    println!("Testing {command}");
+    let (index, command) = buffer.parse_index(command);
+    assert_eq!(index, Ok(Some((1, Some(9)))));
+    assert_eq!(command, "p");
+
+    let command = ";p";
+    println!("Testing {command}");
+    let (index, command) = buffer.parse_index(command);
+    assert_eq!(index, Ok(Some((0, Some(9)))));
+    assert_eq!(command, "p");
+
+    let command = ";++p";
+    println!("Testing {command}");
+    let (index, command) = buffer.parse_index(command);
+    assert_eq!(index, Err(()));
+    assert_eq!(command, "p");
+
+    let command = ";12p";
+    println!("Testing {command}");
+    let (index, command) = buffer.parse_index(command);
+    assert_eq!(index, Err(()));
+    assert_eq!(command, "p");
+
+    let command = "++;p";
+    println!("Testing {command}");
+    let (index, command) = buffer.parse_index(command);
+    assert_eq!(index, Err(()));
     assert_eq!(command, "p");
 }
