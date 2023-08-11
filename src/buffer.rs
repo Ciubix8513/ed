@@ -178,20 +178,33 @@ impl Buffer {
                             println!("Error at 177");
                             return (Err(()), &ind[parsing_index..]);
                         }
-                        let index = number_buffer
-                            .parse::<usize>()
-                            .ok()
-                            .map(|i| i + offset as usize);
+                        // No need to check for it's validity cause WE are pushing only the number
+                        // chars into it
+                        let index = number_buffer.parse::<i32>().unwrap();
                         // No need to clear this, since there will be no more parsing
-                        // number_buffer.clear();
-                        // offset = 0;
+
+                        //Test if the index will be underflowed
+                        if -offset >= index {
+                            return (Err(()), &ind[parsing_index..]);
+                        }
+
+                        if index + offset >= self.lines.len() as i32 {
+                            return (Err(()), &ind[parsing_index..]);
+                        }
+
                         return if first_index.is_some() {
                             (
-                                Ok(Some((first_index.unwrap(), index))),
+                                Ok(Some((
+                                    first_index.unwrap(),
+                                    Some((index + offset) as usize),
+                                ))),
                                 &ind[parsing_index..],
                             )
                         } else {
-                            (Ok(index.map(|i| (i, None))), &ind[parsing_index..])
+                            (
+                                Ok(Some(((index + offset) as usize, None))),
+                                &ind[parsing_index..],
+                            )
                         };
                     }
                 }
@@ -231,6 +244,71 @@ fn index_test() {
     let (index, command) = buffer.parse_index(command);
 
     assert_eq!(index, Ok(Some((1, Some(10)))));
+    assert_eq!(command, "p");
+}
+
+#[test]
+fn subtraction_test() {
+    let mut buffer = Buffer::default();
+    buffer.cursor = 1;
+    buffer.lines = (0..20).map(|i| i.to_string()).collect();
+
+    let command = "1,--10p";
+    let (index, command) = buffer.parse_index(command);
+
+    assert_eq!(index, Ok(Some((1, Some(8)))));
+    assert_eq!(command, "p");
+
+    let command = "--3,10p";
+    let (index, command) = buffer.parse_index(command);
+
+    assert_eq!(index, Ok(Some((1, Some(10)))));
+    assert_eq!(command, "p");
+
+    let command = "--3,--10p";
+    let (index, command) = buffer.parse_index(command);
+
+    assert_eq!(index, Ok(Some((1, Some(8)))));
+    assert_eq!(command, "p");
+
+    let command = "--1,10p";
+    let (index, _) = buffer.parse_index(command);
+
+    assert_eq!(index, Err(()));
+
+    let command = "1,--1p";
+    let (index, _) = buffer.parse_index(command);
+
+    assert_eq!(index, Err(()));
+
+    let command = "--1,--1p";
+    let (index, _) = buffer.parse_index(command);
+
+    assert_eq!(index, Err(()));
+}
+
+#[test]
+fn addition_test() {
+    let mut buffer = Buffer::default();
+    buffer.cursor = 1;
+    buffer.lines = (0..20).map(|i| i.to_string()).collect();
+
+    let command = "1,++10p";
+    let (index, command) = buffer.parse_index(command);
+
+    assert_eq!(index, Ok(Some((1, Some(12)))));
+    assert_eq!(command, "p");
+
+    let command = "++1,10p";
+    let (index, command) = buffer.parse_index(command);
+
+    assert_eq!(index, Ok(Some((3, Some(10)))));
+    assert_eq!(command, "p");
+
+    let command = "++1,++10p";
+    let (index, command) = buffer.parse_index(command);
+
+    assert_eq!(index, Ok(Some((3, Some(12)))));
     assert_eq!(command, "p");
 }
 
